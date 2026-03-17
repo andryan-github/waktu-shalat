@@ -485,12 +485,6 @@ text-shadow:
     100% { opacity: 1; }
 }
 
-.slide-img{
-    width:100%;
-    height: calc(100vh - 186px);
-    object-fit: cover;
-}
-
 </style>
 
 </head>
@@ -820,11 +814,7 @@ $(function(){
 	// anti freeze timer
 	setInterval(function(){},30000); // FIX BUG timer freeze, dengan interval kosong yang berjalan setiap 30 detik untuk menjaga event loop tetap aktif
 
-	preloadSlides(); // DOWNLOAD semua file images di awal
-    setTimeout(function(){
-    applyImagesFromCache();
-    }, 3000);
-
+	
 	//running text
 	$.ajax({
 	url: setting.runningTextFile,
@@ -883,19 +873,14 @@ document.addEventListener("visibilitychange", function(){
 
 	//slide wallpaper
 	for(var a=1;a<=setting.slideImageCount;a++){ // FIX BUG global variable
-		$('.slide-container').append(
-        '<div class="item">' +
-        '<img class="slide-img" data-index="'+a+'" ' +
-        'style="width:100%;height:100%;object-fit:cover;" />' +
-        '</div>'
-    );
+		$('.slide-container').append('<div class="item" style="background-image: url(\'www/public/Bilal/img/slide/'+a+'.JPG\')"></div>');
 	}
 
 	$('.owl-carousel').owlCarousel({
 		loop:true,
 		items:1,
 		dots:false,
-		lazyLoad:true,
+		lazyLoad:true, 
 		autoplay:true,
 		autoplayHoverPause:false,
 		touchDrag:true,
@@ -1325,52 +1310,7 @@ function hideOverlay(){
     $('.message-overlay').hide();
 }
 
-function preloadSlides(){
 
-    for(let i=1;i<=setting.slideImageCount;i++){
-
-        setTimeout(function(){
-
-            const img = new Image();
-
-            img.src = "www/public/Bilal/img/slide/"+i+".JPG";
-
-            img.onload = function(){
-
-                // decode bitmap lebih awal supaya tidak freeze saat slide tampil
-                if(img.decode){
-                    img.decode().catch(function(){});
-                }
-
-            };
-
-			if(slideCache.length < setting.slideImageCount){
-    			slideCache.push(img); // simpan agar tidak di-GC
-			}
-            
-        }, i*800);
-
-    }
-
-}
-
-function applyImagesFromCache(){
-
-    $('.slide-img').each(function(){
-
-        var index = parseInt($(this).attr('data-index'));
-
-        var cached = slideCache.find(x => x.index === index);
-
-        if(cached){
-            this.src = cached.img.src;
-        }else{
-            this.src = "www/public/Bilal/img/slide/"+index+".JPG";
-        }
-
-    });
-
-}
 
 </script>
 </body>
