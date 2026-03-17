@@ -657,7 +657,9 @@ var bilalLogger = null;
 var bilalLoggerStopper = null;
 var iqomahCountdownActive = false;
 var iqomahLastSecond = -1;
-var owlRunning = true;
+var owlRunning = false;
+var owlReady = false;
+var owlResetTimer = null;
 
 // BilalApp Logger
 function startLogger(){
@@ -701,7 +703,6 @@ function startApp(){
 
 	stopTimer(); // FIX edge case midnight timer
 	
-
     var offsetIcon = setting.timezoneOffset>0?'+':(setting.timezoneOffset==0)?'':'-';
 	var now = new Date(); // today
 	
@@ -714,6 +715,7 @@ function startApp(){
 	
 	masterTime = [times.imsak, times.fajr, times.sunrise, times.dhuhr, times.asr, times.maghrib, times.isha];
 	masterName = setting.aliasName;
+	
 	// FIX BUG reference array (harus copy bukan reference)
 	tempShalat = masterTime.slice();
 	
@@ -733,6 +735,8 @@ function startApp(){
 	$('.middle2').text(setting.alamat);
 	$('.version').text(app.version);
 	$('.appname').text(app.name);
+
+	safeResetOwl(); // ← khusus owl, agar tidak error jika jadwal berubah saat slide show berjalan
 
 	nextSchedule();
 }
@@ -881,7 +885,7 @@ document.addEventListener("visibilitychange", function(){
 		loop:true,
 		items:1,
 		dots:false,
-		lazyLoad:true, 
+		lazyLoad:false, 
 		autoplay:true,
 		autoplayHoverPause:false,
 		touchDrag:true,
@@ -890,6 +894,10 @@ document.addEventListener("visibilitychange", function(){
 		autoplayTimeout:setting.slideInterval,
 		slideTransition:'ease-in-out' // bisa dihapus jika dianggap tidak perlu
 	});
+
+//INIT OWL CAROUSEL SETTING
+owlReady = true;
+owlRunning = true;
 
 	// FIX FEATURE auto refresh jadwal setiap hari (OFFLINE SAFE)
 	// tidak menggunakan reload agar tetap berjalan walaupun tanpa internet
@@ -1145,7 +1153,7 @@ if(name=='shalat_sunnah' && distance <= 90){
         hideOverlay();
 
         // hidupkan kembali slideshow
-        startOwl();
+        safeResetOwl();
 
 		// hidupkan kembali running text
 		$('.running-text').marquee('resume');
@@ -1159,7 +1167,9 @@ if(name=='shalat_sunnah' && distance <= 90){
         systemState = "countdown";
 
         // lanjut ke jadwal shalat berikutnya
-        nextSchedule();
+        setTimeout(function(){
+    		nextSchedule();
+		}, 300);
 
     }, durasi);
 
@@ -1311,7 +1321,10 @@ function hideOverlay(){
     $('.message-overlay').hide();
 }
 
+
 function startOwl(){
+    if(!owlReady) return; // <-- PROTEKSI
+
     if(!owlRunning){
         $('.owl-carousel').trigger('play.owl.autoplay', [setting.slideInterval]);
         owlRunning = true;
@@ -1320,11 +1333,37 @@ function startOwl(){
 }
 
 function stopOwl(){
+    if(!owlReady) return; // <-- PROTEKSI
+
     if(owlRunning){
         $('.owl-carousel').trigger('stop.owl.autoplay');
         owlRunning = false;
         console.log("Owl stopped");
     }
+}
+
+function safeResetOwl(){
+
+    if(!owlReady){
+        console.log("Owl not ready, skip reset");
+        return;
+    }
+
+    // batalkan reset sebelumnya (ANTI NUMPUK)
+    if(owlResetTimer){
+        clearTimeout(owlResetTimer);
+    }
+
+    if(owlRunning){
+    stopOwl();
+}
+
+    owlResetTimer = setTimeout(function(){
+		$('.owl-carousel').trigger('refresh.owl.carousel'); // optional
+        $('.owl-carousel').trigger('to.owl.carousel', [0, 0]);
+        startOwl();
+        owlResetTimer = null;
+    }, 100);
 }
 
 </script>
