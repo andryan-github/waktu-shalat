@@ -655,9 +655,9 @@ var internetFailCount = 0;
 var internetFailTolerance = 10; // toleransi gagal cek internet sebelum dianggap offline (default 10 kali)
 var bilalLogger = null;
 var bilalLoggerStopper = null;
-var slideCache = []; // cache gambar slideshow
 var iqomahCountdownActive = false;
 var iqomahLastSecond = -1;
+var owlRunning = true;
 
 // BilalApp Logger
 function startLogger(){
@@ -1087,7 +1087,7 @@ if(name=='shalat_sunnah' && distance <= 90){
     showOverlay("🕋","SHALAT " + shalatName,"SEDANG BERLANGSUNG");
 
     // hentikan slideshow selama shalat
-    $('.owl-carousel').trigger('stop.owl.autoplay');
+    stopOwl();
 
 	// hentikan running text selama shalat
 	$('.running-text').marquee('pause');
@@ -1145,7 +1145,7 @@ if(name=='shalat_sunnah' && distance <= 90){
         hideOverlay();
 
         // hidupkan kembali slideshow
-        $('.owl-carousel').trigger('play.owl.autoplay');
+        startOwl();
 
 		// hidupkan kembali running text
 		$('.running-text').marquee('resume');
@@ -1311,7 +1311,21 @@ function hideOverlay(){
     $('.message-overlay').hide();
 }
 
+function startOwl(){
+    if(!owlRunning){
+        $('.owl-carousel').trigger('play.owl.autoplay', [setting.slideInterval]);
+        owlRunning = true;
+        console.log("Owl started");
+    }
+}
 
+function stopOwl(){
+    if(owlRunning){
+        $('.owl-carousel').trigger('stop.owl.autoplay');
+        owlRunning = false;
+        console.log("Owl stopped");
+    }
+}
 
 </script>
 </body>
