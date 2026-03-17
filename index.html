@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -621,8 +622,14 @@ var setting = {
 	runningTextFile: "www/public/Bilal/text/runningtext.txt",
 	runningTextSpeed: 15000,
 
-	slideInterval: 19000,
+	slideInterval: 20000,
 	slideImageCount: 21,
+
+    adaptivePreload: {
+    initialLoad: 3,   // tampil cepat (slide awal)
+    delayFast: 300,   // device cepat
+    delaySlow: 1200   // device lambat (TV box)
+    },
 
 	adzanTime: 270000, // 4 menit 30 detik lama tulisan adzan
 	iqomahTime: 30000, // 30 detik lama waktu tulisan iqomah
@@ -657,6 +664,19 @@ var bilalLoggerStopper = null;
 var slideCache = []; // cache gambar slideshow
 var iqomahCountdownActive = false;
 var iqomahLastSecond = -1;
+var refreshCounter = 0;
+var lastFrameTime = performance.now();
+var fps = 60;
+
+function trackFPS(){
+    const now = performance.now();
+    fps = 1000 / (now - lastFrameTime);
+    lastFrameTime = now;
+
+    requestAnimationFrame(trackFPS);
+}
+
+trackFPS();
 
 // BilalApp Logger
 function startLogger(){
@@ -811,9 +831,38 @@ $(function(){
 		watchdogLastTick = Date.now(); // FIX BUG watchdog tick setiap aktivitas, termasuk heartbeat
     },60000);
 
+setInterval(function(){
+
+    if(!window.owlStarted || systemState !== "countdown") return;
+
+    let owl = $('.owl-carousel');
+
+    let current = owl.find('.owl-item.active').index();
+
+if(current === -1) return;
+
+    if(window.lastOwlIndex !== undefined && window.lastOwlIndex === current){
+        
+        console.log("Owl stuck detected → restarting");
+
+        try{
+            owl.trigger('stop.owl.autoplay');
+            owl.trigger('play.owl.autoplay');
+        }catch(e){
+            console.log("Owl recovery error", e);
+        }
+    }
+
+    window.lastOwlIndex = current;
+
+}, 60000);
+
+    
 	// anti freeze timer
 	setInterval(function(){},30000); // FIX BUG timer freeze, dengan interval kosong yang berjalan setiap 30 detik untuk menjaga event loop tetap aktif
 
+    // ✅ TAMBAHKAN DI SINI
+preloadSlides();
 	
 	//running text
 	$.ajax({
@@ -871,24 +920,7 @@ document.addEventListener("visibilitychange", function(){
 
 	}
 
-	//slide wallpaper
-	for(var a=1;a<=setting.slideImageCount;a++){ // FIX BUG global variable
-		$('.slide-container').append('<div class="item" style="background-image: url(\'www/public/Bilal/img/slide/'+a+'.JPG\')"></div>');
-	}
-
-	$('.owl-carousel').owlCarousel({
-		loop:true,
-		items:1,
-		dots:false,
-		lazyLoad:true, 
-		autoplay:true,
-		autoplayHoverPause:false,
-		touchDrag:true,
-		mouseDrag:false,
-		smartSpeed:1000, // jangan terlalu lama transisinya, bisa CPU spike
-		autoplayTimeout:setting.slideInterval,
-		slideTransition:'ease-in-out' // bisa dihapus jika dianggap tidak perlu
-	});
+	
 
 	// FIX FEATURE auto refresh jadwal setiap hari (OFFLINE SAFE)
 	// tidak menggunakan reload agar tetap berjalan walaupun tanpa internet
@@ -1310,6 +1342,132 @@ function hideOverlay(){
     $('.message-overlay').hide();
 }
 
+function isLowDevice(){
+    return navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4;
+}
+
+function preloadSlides(){
+
+    let index = 1;
+    let loadedInitial = 0;
+
+    function getAdaptiveDelay(){
+
+    if(fps < 30){
+        return 1500; // device lagi berat
+    }
+
+    if(fps < 45){
+        return 800;
+    }
+
+    return isLowDevice()
+        ? setting.adaptivePreload.delaySlow
+        : setting.adaptivePreload.delayFast;
+}
+
+    function loadNext(){
+
+        if(index > setting.slideImageCount){
+
+    if($('.slide-container .item').length < 2){
+        console.log("Warning: slide terlalu sedikit");
+    }
+
+    
+    return; // 🔥 WAJIB
+}
+
+
+        const img = new Image();
+        img.src = "www/public/Bilal/img/slide/" + index + ".JPG";
+
+        img.onload = function(){
+
+            if(img.decode){
+                img.decode().catch(()=>{});
+            }
+
+            // inject ke owl
+            $('.slide-container').append(
+                '<div class="item"><img src="'+img.src+'" style="width:100%;height:100%;object-fit:cover;"></div>'
+            );
+
+if(window.owlStarted){
+    refreshCounter++;
+
+    if(refreshCounter % 3 === 0){ // refresh tiap 3 gambar
+        $('.owl-carousel').trigger('refresh.owl.carousel');
+    }
+}
+
+            slideCache.push(img);
+
+// batasi cache
+if(slideCache.length > 10){
+    let old = slideCache.shift();
+    old.src = ""; // bantu GC browser
+}
+            loadedInitial++;
+            // ✅ START OWL lebih cepat (tidak tunggu semua)
+            if(!window.owlStarted && loadedInitial >= setting.adaptivePreload.initialLoad){
+
+    setTimeout(function(){
+
+        if($('.slide-container .item').length >= setting.adaptivePreload.initialLoad){
+
+            startOwl();
+            window.owlStarted = true;
+
+        }
+
+    }, 300); // kasih waktu DOM settle
+}
+            index++;
+
+            setTimeout(loadNext, getAdaptiveDelay());
+        };
+
+        img.onerror = function(){
+            index++;
+            setTimeout(loadNext, getAdaptiveDelay());
+        };
+    }
+
+    loadNext();
+
+    // fallback jika owl belum start setelah 10 detik
+setTimeout(function(){
+
+    if(!window.owlStarted && $('.slide-container .item').length > 0){
+
+        console.log("Fallback Owl start triggered");
+
+        startOwl();
+        window.owlStarted = true;
+    }
+
+}, 10000);
+
+
+}
+
+function startOwl(){
+
+    $('.owl-carousel').owlCarousel({
+        loop:true,
+        items:1,
+        dots:false,
+        lazyLoad:false,
+        autoplay:true,
+        autoplayHoverPause:false,
+        touchDrag:true,
+        mouseDrag:false,
+        smartSpeed:1000,
+        autoplayTimeout:setting.slideInterval
+    });
+
+}
 
 
 </script>
