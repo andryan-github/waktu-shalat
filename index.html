@@ -342,7 +342,7 @@ pointer-events:none;
     left:0;
     width:100%;
     height:100%;
-    display:none;
+    display:flex;
 
     align-items:center;
     justify-content:center;
@@ -1390,7 +1390,7 @@ function safeResetOwl(){
 
 function initOwl() {
     $('.owl-carousel').owlCarousel({
-        loop:true,
+        loop: totalItems > 1, // 🔥 FIX
         items:1,
         dots:false,
         lazyLoad:false,
@@ -1420,12 +1420,13 @@ function loadSlidesSafe() {
             addSlide(url);
             validSlides++;
 
- // 🔥 sembunyikan pesan saat ada image
-$('.slide-message').removeClass('show');
-
+ 
             // 🔥 START hanya jika sudah cukup
             if (validSlides === minSlidesToStart && !owlReady) {
                 initOwl();
+				// 🔥 sembunyikan pesan saat ada image
+				$('.slide-message').removeClass('show');
+
             }
         };
 
