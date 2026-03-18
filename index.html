@@ -875,10 +875,7 @@ document.addEventListener("visibilitychange", function(){
 	}
 
 	loadSlidesSafe(); // load slide show secara aman, dengan pengecekan tambahan untuk mencegah error jika terjadi masalah saat load
-	addSlide(); // mulai loop penambahan slide, dengan pengecekan tambahan untuk mencegah error jika terjadi masalah saat load
-	initOwl(); // inisialisasi owl carousel, dengan pengecekan tambahan untuk mencegah error jika terjadi masalah saat load
-	finalizeSlides(); // finalize slide show, dengan pengecekan tambahan untuk mencegah error jika terjadi masalah saat load
-
+	
 	// FIX FEATURE auto refresh jadwal setiap hari (OFFLINE SAFE)
 	// tidak menggunakan reload agar tetap berjalan walaupun tanpa internet
 	setInterval(function(){
@@ -1414,9 +1411,6 @@ function finalizeSlides(validSlides) {
     // 🔥 baru init owl kalau aman
     initOwl();
 }
-
-
-
 
 
 </script>
