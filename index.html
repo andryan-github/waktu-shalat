@@ -1373,9 +1373,7 @@ function initOwl() {
 function loadSlidesSafe() {
     var validSlides = 0;
     var total = setting.slideImageCount;
-    var fallback = "www/public/Bilal/img/fallback.jpg";
 
-	
     for (let a = 1; a <= total; a++) {
         let url = "www/public/Bilal/img/slide/" + a + ".JPG";
 
@@ -1384,18 +1382,21 @@ function loadSlidesSafe() {
         img.onload = function () {
             addSlide(url);
             validSlides++;
+
+            // 🔥 START LANGSUNG SAAT ADA 1 IMAGE
+            if (validSlides === 1 && !owlReady) {
+                initOwl();
+            }
         };
 
         img.onerror = function () {
-            // optional: pakai fallback
-            // addSlide(fallback);
+            // diam saja (no fallback)
         };
 
         img.src = url;
     }
 
-    // safety timeout (penting!)
-     // fallback timeout
+    // fallback kalau semua gagal / lambat
     setTimeout(function () {
         finalizeSlides(validSlides);
     }, 3000);
