@@ -299,10 +299,12 @@ pointer-events:none;
 	position:relative;	
 	}
 
-    .wallpaper{
-    position:relative;
-    }
-
+    .wallpaper {
+		position: relative;
+    background: #2e7d32; /* fallback warna */
+    height: calc(100vh - 186px);
+    overflow: hidden;
+}
 
 	.wallpaper .item{ /*wallpaper slide*/
 		box-sizing: border-box;
@@ -328,6 +330,11 @@ pointer-events:none;
 	.second-block{
 		margin: 0px auto;
 	}
+
+	.slide-container {
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
 
 .running-container { /* contain text */
     position: absolute;
@@ -874,7 +881,7 @@ document.addEventListener("visibilitychange", function(){
 
 	}
 
-	loadSlidesSafe(); // load slide show secara aman, dengan pengecekan tambahan untuk mencegah error jika terjadi masalah saat load
+		loadSlidesSafe(); // load slide show secara aman, dengan pengecekan tambahan untuk mencegah error jika terjadi masalah saat load
 	
 	// FIX FEATURE auto refresh jadwal setiap hari (OFFLINE SAFE)
 	// tidak menggunakan reload agar tetap berjalan walaupun tanpa internet
@@ -1358,7 +1365,7 @@ function initOwl() {
         smartSpeed:1000,
         autoplayTimeout:setting.slideInterval
     });
-
+	$('.slide-container').css('opacity', 1);
     owlReady = true;
     owlRunning = true;
 }
@@ -1368,6 +1375,7 @@ function loadSlidesSafe() {
     var total = setting.slideImageCount;
     var fallback = "www/public/Bilal/img/fallback.jpg";
 
+	
     for (let a = 1; a <= total; a++) {
         let url = "www/public/Bilal/img/slide/" + a + ".JPG";
 
@@ -1380,13 +1388,14 @@ function loadSlidesSafe() {
 
         img.onerror = function () {
             // optional: pakai fallback
-            addSlide(fallback);
+            // addSlide(fallback);
         };
 
         img.src = url;
     }
 
     // safety timeout (penting!)
+     // fallback timeout
     setTimeout(function () {
         finalizeSlides(validSlides);
     }, 3000);
@@ -1401,15 +1410,18 @@ function addSlide(url) {
 function finalizeSlides(validSlides) {
 
     if (validSlides === 0) {
-        // 🔥 semua gagal → jangan jalankan owl
-        $('.slide-container').hide();
+        // 🔥 tidak ada slide → biarkan kosong
+        // wallpaper background tetap tampil
+        console.log("No slides available, using background only");
+
         owlReady = false;
         owlRunning = false;
         return;
     }
 
-    // 🔥 baru init owl kalau aman
-    initOwl();
+    if (!owlReady) {
+        initOwl();
+    }
 }
 
 
