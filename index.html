@@ -1460,6 +1460,8 @@ function finalizeSlides(validSlides) {
     if (validSlides === 1 && !owlReady) {
         // masih bisa jalan walau 1 slide (tanpa loop)
         initOwl();
+		// 🔥 sembunyikan pesan saat ada image
+		$('.slide-message').removeClass('show');
         return;
     }
 
