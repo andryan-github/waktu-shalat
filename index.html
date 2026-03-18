@@ -1389,6 +1389,7 @@ function safeResetOwl(){
 }
 
 function initOwl() {
+	var totalItems = $('.slide-container .item').length; // 🔥 WAJIB
     $('.owl-carousel').owlCarousel({
         loop: totalItems > 1, // 🔥 FIX
         items:1,
@@ -1464,6 +1465,8 @@ function finalizeSlides(validSlides) {
 
     if (!owlReady) {
         initOwl();
+		// 🔥 sembunyikan pesan saat ada image
+		$('.slide-message').removeClass('show');
     }
 }
 
