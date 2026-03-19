@@ -596,7 +596,7 @@ text-shadow:
 
 //app setting
 var app = {
-	version: '1.2.9', // FIX BUG + auto refresh daily + stability fix + owl fix (18/03/2026) by Andryan Nugraha
+	version: '1.2.9', // FIX BUG + auto refresh daily + stability fix + owl fix + normalize heartbeat (19/03/2026) by Andryan Nugraha
 	name: 'Bilal App',
 	autoLocation: false // SET true, jika anda ingin menggunakan autolocation, setelah memilih opsi enable GPS pada browser, lalukan refresh pada browser. Fitur ini hanya berfungsi jika device terkoneksi dengan internet saja.
 };
@@ -721,31 +721,29 @@ function startHeartbeat(){
         // =========================
         if(now - lastWatchdogCheck > 300000){
 
-            lastWatchdogCheck = now;
+    lastWatchdogCheck = now;
 
-            var diff = now - watchdogLastTick;
+    var diff = now - watchdogLastTick;
 
-            // jika lebih dari 150 detik tidak ada aktivitas, di luar ritual phase
-            if(diff > 150000){
+    if(diff > 150000){
 
-    if(systemState === "countdown"){
-        
-        console.log("Watchdog restart (heartbeat)");
+        if(systemState === "countdown"){
 
-        try{
-            startApp();
-        }catch(e){
-            console.log("Watchdog error:", e);
+            console.log("Watchdog restart (heartbeat)");
+
+            try{
+                startApp();
+            }catch(e){
+                console.log("Watchdog error:", e);
+            }
+
+        }else{
+            console.log("Watchdog skipped (ritual)");
         }
 
-    }else{
-        console.log("Watchdog skipped (ritual)");
     }
 
 }
-               
-            }
-        }
 
         // =========================
         // 4. 6 JAM STABILITY REFRESH
