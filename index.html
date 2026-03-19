@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -299,12 +300,10 @@ pointer-events:none;
 	position:relative;	
 	}
 
-    .wallpaper {
-		position: relative;
-    background: #2e7d32; /* fallback warna */
-    height: calc(100vh - 186px);
-    overflow: hidden;
-}
+    .wallpaper{
+    position:relative;
+    }
+
 
 	.wallpaper .item{ /*wallpaper slide*/
 		box-sizing: border-box;
@@ -330,42 +329,6 @@ pointer-events:none;
 	.second-block{
 		margin: 0px auto;
 	}
-
-	.slide-container {
-    opacity: 0;
-    transition: opacity 0.5s ease;
-}
-
-.slide-message {
-    position:absolute;
-    top:0;
-    left:0;
-    width:100%;
-    height:100%;
-    display:flex;
-
-    align-items:center;
-    justify-content:center;
-    text-align:center;
-	opacity:0;
-    transition: opacity 0.5s ease;
-    z-index:5;
-}
-
-.slide-message.show {
-    display:flex;
-    opacity:1;
-}
-
-.slide-msg-text {
-    color:#ffffff;
-    font-size:40px;
-    font-weight:bold;
-
-    text-shadow:
-    0 3px 6px rgba(0,0,0,0.9),
-    0 0 10px rgba(33,147,176,0.6);
-}
 
 .running-container { /* contain text */
     position: absolute;
@@ -587,11 +550,6 @@ text-shadow:
 				<div class="wallpaper">
 					<div class="slide-container owl-carousel owl-theme">
 					</div>
-					<div class="slide-message">
-    <div class="slide-msg-text">
-        KONTEN TIDAK TERSEDIA
-    </div>
-</div>
 					<div class="running-container">
 						<div class="running-text"></div>
 					</div>
@@ -627,12 +585,12 @@ text-shadow:
 	
 	
 	<script src="www/public/Bilal/js/jquery-3.3.1.min.js"></script>
-	<script src="www/public/Bilal/js/moment-with-locales.min.js"></script>
-	<script src="www/public/Bilal/js/moment-hijri.js"></script>
+<script src="www/public/Bilal/js/moment-with-locales.min.js"></script>
+<script src="www/public/Bilal/js/moment-hijri.js"></script>
 
-	<script src="www/public/Bilal/js/PrayTimes.js"></script>
-	<script src="www/public/Bilal/js/jquery.marquee.min.js"></script>
-	<script src="www/public/Bilal/js/owlcarousel/owl.carousel.min.js"></script>
+<script src="www/public/Bilal/js/PrayTimes.js"></script>
+<script src="www/public/Bilal/js/jquery.marquee.min.js"></script>
+<script src="www/public/Bilal/js/owlcarousel/owl.carousel.min.js"></script>
 
 <script>
 
@@ -700,6 +658,112 @@ var iqomahLastSecond = -1;
 var owlRunning = false;
 var owlReady = false;
 var owlResetTimer = null;
+var heartbeatInterval = null;
+var heartbeatTick = 0;
+var currentDate;
+var todayDate;
+var lastStabilityCheck = Date.now();
+var lastMinuteCheck = Date.now();
+var lastWatchdogCheck = Date.now();
+
+
+// FIX STABILITY TV BOX MODE
+// tidak reload halaman karena bisa gagal jika internet mati
+// hanya refresh jadwal dan countdown
+function startHeartbeat(){
+
+    if(heartbeatInterval){
+        clearInterval(heartbeatInterval);
+    }
+
+    heartbeatInterval = setInterval(function(){
+
+        heartbeatTick++;
+        var now = Date.now();
+
+        // =========================
+        // 1. BASIC TICK (SETIAP DETIK)
+        // =========================
+       if(systemState === "countdown"){
+            watchdogLastTick = now;
+        }
+
+        // update jam (tanpa tunggu countdown)
+        updateClockDisplay();
+
+        // =========================
+        // 2. 1 MENIT TASK
+        // =========================
+        if(now - lastMinuteCheck > 60000){
+            lastMinuteCheck = now;
+
+            // random log (hemat CPU)
+            if(Math.random() < 0.1){
+                console.log("Bilal heartbeat", Date.now());
+            }
+
+            // cek pergantian hari
+             currentDate = moment().format("YYYY-MM-DD");
+
+            if(currentDate !== todayDate && systemState == "countdown"){
+                todayDate = currentDate;
+                console.log("Daily refresh triggered");
+                startApp();
+            }
+
+            // cek network
+            updateNetworkStatus();
+        }
+
+ 
+        // =========================
+        // 3. 5 MENIT WATCHDOG
+        // =========================
+        if(now - lastWatchdogCheck > 300000){
+
+            lastWatchdogCheck = now;
+
+            var diff = now - watchdogLastTick;
+
+            // jika lebih dari 150 detik tidak ada aktivitas, di luar ritual phase
+            if(diff > 150000){
+
+    if(systemState === "countdown"){
+        
+        console.log("Watchdog restart (heartbeat)");
+
+        try{
+            startApp();
+        }catch(e){
+            console.log("Watchdog error:", e);
+        }
+
+    }else{
+        console.log("Watchdog skipped (ritual)");
+    }
+
+}
+               
+            }
+        }
+
+        // =========================
+        // 4. 6 JAM STABILITY REFRESH
+        // =========================
+        
+
+if(now - lastStabilityCheck > 21600000){
+    lastStabilityCheck = now;
+
+    console.log("Stability refresh (heartbeat)");
+
+    if(systemState == "countdown"){
+        startApp();
+    }
+}
+
+    }, 1000);
+}
 
 // BilalApp Logger
 function startLogger(){
@@ -734,8 +798,6 @@ function startLogger(){
 
 }
 
-// FIX FEATURE auto refresh daily tracking
-var todayDate = moment().format("YYYY-MM-DD");
 
 
 // with FIX BUG geolocation async
@@ -781,39 +843,6 @@ function startApp(){
 	nextSchedule();
 }
 
-// ===============================
-// WATCHDOG DISPLAY SYSTEM
-// menjaga sistem tetap hidup 24 jam
-// ===============================
-
-
-setInterval(function(){
-
-    var now = Date.now();
-    var diff = now - watchdogLastTick;
-
-    // jika lebih dari 2 menit tidak ada aktivitas
-    if(diff > 150000 && !mycountdown){
-
-    if(systemState == "countdown"){
-        console.log("Watchdog restart triggered");
-
-        try{
-            startApp();
-        }catch(e){
-            console.log("Watchdog error:",e);
-        }
-
-    }else{
-        console.log("Watchdog skipped (ritual phase)");
-    }
-
-    watchdogLastTick = Date.now();
-
-    }
-
-	
-},300000); // cek setiap 5 menit
 
 
 // FIX BUG audio autoplay
@@ -833,8 +862,13 @@ function inArray(needle, haystack) {
 
 $(function(){
 
+    moment.locale('id');  
+    // FIX FEATURE auto refresh daily tracking
+    todayDate = moment().format("YYYY-MM-DD");
+
+    startHeartbeat(); // mulai heartbeat BilalApp untuk stabilitas TV Box mode
     startLogger(); // mulai BilalApp logger untuk 5 menit di awal saja
-	moment.locale('id'); 
+	
 
      // cek saat pertama load
     updateNetworkStatus();
@@ -846,22 +880,7 @@ $(function(){
     window.addEventListener('online', updateNetworkStatus);
     window.addEventListener('offline', updateNetworkStatus);
 
-    // fallback check setiap 10 menit
-    setInterval(updateNetworkStatus,600000);
-
-	// heartbeat agar kiosk tahu JS masih hidup
-    setInterval(function(){
-        if(Math.random()<0.1){
- 		console.log("Bilal heartbeat", Date.now());
-		}
-		watchdogLastTick = Date.now(); // FIX BUG watchdog tick setiap aktivitas, termasuk heartbeat
-    },60000);
-
-	// anti freeze timer
-	// setInterval(function(){},30000); // FIX BUG timer freeze, dengan interval kosong yang berjalan setiap 30 detik untuk menjaga event loop tetap aktif
-
-	
-	//running text
+    //running text
 	$.ajax({
 	url: setting.runningTextFile,
 	success:function(d){
@@ -917,40 +936,31 @@ document.addEventListener("visibilitychange", function(){
 
 	}
 
-		loadSlidesSafe(); // load slide show secara aman, dengan pengecekan tambahan untuk mencegah error jika terjadi masalah saat load
-	
-	// FIX FEATURE auto refresh jadwal setiap hari (OFFLINE SAFE)
-	// tidak menggunakan reload agar tetap berjalan walaupun tanpa internet
-	setInterval(function(){
-
-	var currentDate = moment().format("YYYY-MM-DD");
-
-	if(currentDate !== todayDate && systemState == "countdown"){
-
-		todayDate = currentDate; // update hari
-		startApp(); // hitung ulang jadwal shalat tanpa reload halaman
-
+	//slide wallpaper
+	for(var a=1;a<=setting.slideImageCount;a++){ // FIX BUG global variable
+		$('.slide-container').append('<div class="item" style="background-image: url(\'www/public/Bilal/img/slide/'+a+'.JPG\')"></div>');
 	}
 
-},60000);
+	$('.owl-carousel').owlCarousel({
+		loop:true,
+		items:1,
+		dots:false,
+		lazyLoad:false, 
+		autoplay:true,
+		autoplayHoverPause:false,
+		touchDrag:true,
+		mouseDrag:false,
+		smartSpeed:1000, // jangan terlalu lama transisinya, bisa CPU spike
+		autoplayTimeout:setting.slideInterval,
+		slideTransition:'ease-in-out' // bisa dihapus jika dianggap tidak perlu
+	});
+        //INIT OWL CAROUSEL SETTING
+        owlReady = true;
+        owlRunning = true;
 
-	// FIX STABILITY TV BOX MODE
-	// tidak reload halaman karena bisa gagal jika internet mati
-	// hanya refresh jadwal dan countdown
-
-	setInterval(function(){
-
-console.log("Bilal App stability refresh");
-
-if(systemState == "countdown"){
-    startApp(); // refresh jadwal tanpa reload halaman
-}else{
-    console.log("Refresh skipped (ritual phase)");
-}
-
-},21600000); // 6 jam
 
 });
+
 
 //stop timer
 function stopTimer(){
@@ -1006,7 +1016,8 @@ function countdownShalat(time, name, desc, shalatName =''){
         // =========================
         // OPTIMASI MOMENT
         // =========================
-        var now = moment().unix();
+        // var now = moment().unix();
+        var now = Math.floor(Date.now()/1000);
 
         var distance = finalTime - now;
 
@@ -1131,11 +1142,6 @@ if(name=='shalat_sunnah' && distance <= 90){
     $('.desc').text('SEDANG SHALAT ' + shalatName);
 
     // -----------------------------------------
-    // hentikan timer sebelumnya (iqomah timer)
-    // -----------------------------------------
-    // stopTimer();
-
-    // -----------------------------------------
     // hitung waktu selesai shalat
     // menggunakan timestamp agar stabil
     // -----------------------------------------
@@ -1157,8 +1163,7 @@ if(name=='shalat_sunnah' && distance <= 90){
             $(".countdown-event").text("00:00:00");
         }
 
-        updateClockDisplay();
-
+        
     },1000);
 
     // -----------------------------------------
@@ -1216,7 +1221,7 @@ if(name=='shalat_sunnah' && distance <= 90){
         // =========================
         // UPDATE JAM & TANGGAL
         // =========================
-       updateClockDisplay();
+       //updateClockDisplay();
     },1000);
 }
 
@@ -1248,10 +1253,10 @@ if(systemState !== "countdown" && systemState !== "iqomah"){
         hideOverlay();
     }
 
-	var now = moment().unix(); // lebih aman diletakkan di luar loop
-	for(let a=0;a<tempShalat.length;a++){ // FIX BUG global variable
-		
-		
+	// var now = moment().unix(); // lebih aman diletakkan di luar loop
+	var now = Math.floor(Date.now()/1000);
+    for(let a=0;a<tempShalat.length;a++){ // FIX BUG global variable
+
 		var splt = tempShalat[a].split(':');
 		var next = moment().hour(splt[0]).minute(splt[1]).second(0).unix();
 		
@@ -1299,32 +1304,35 @@ function updateNetworkStatus(){
 // CHECK koneksi INTERNET real time, bukan sekedar adanya WIFI 
 function checkInternet(){
 
-fetch(setting.runningTextFile, {method:'HEAD'})
-.then(function(){
+    $.ajax({
+        url: setting.runningTextFile,
+        method: 'HEAD',
+        timeout: 3000,
+        success: function(){
 
-	internetFailCount = 0; // reset jika berhasil
+            internetFailCount = 0; // reset jika berhasil
 
-    $('.net-status, .net-status-header')
-    .text("ONLINE")
-    .removeClass('net-offline')
-    .addClass('net-online');
+            $('.net-status, .net-status-header')
+            .text("ONLINE")
+            .removeClass('net-offline')
+            .addClass('net-online');
 
-})
-.catch(function(){
+        },
+        error: function(){
 
-	internetFailCount++;
+            internetFailCount++;
 
-	console.log("Internet check failed | count: ", internetFailCount);
+            console.log("Internet check failed | count:", internetFailCount);
 
-	if(internetFailCount >= internetFailTolerance){
+            if(internetFailCount >= internetFailTolerance){
 
-    $('.net-status, .net-status-header')
-    .text("OFFLINE")
-    .removeClass('net-online')
-    .addClass('net-offline');
-	}
-
-});
+                $('.net-status, .net-status-header')
+                .text("OFFLINE")
+                .removeClass('net-online')
+                .addClass('net-offline');
+            }
+        }
+    });
 
 }
 
@@ -1381,97 +1389,11 @@ function safeResetOwl(){
 }
 
     owlResetTimer = setTimeout(function(){
-		// $('.owl-carousel').trigger('refresh.owl.carousel'); // optional, untuk device dengan RAM besar agar tetap segar, tapi bisa menyebabkan CPU spike di device dengan RAM kecil	
-        $('.owl-carousel').trigger('to.owl.carousel', [0, 0]);
+		$('.owl-carousel').trigger('to.owl.carousel', [0, 0]);
         startOwl();
         owlResetTimer = null;
     }, 100);
 }
-
-function initOwl() {
-	var totalItems = $('.slide-container .item').length; // 🔥 WAJIB
-    $('.owl-carousel').owlCarousel({
-        loop: totalItems > 1, // 🔥 FIX
-        items:1,
-        dots:false,
-        lazyLoad:false,
-        autoplay:true,
-        autoplayHoverPause:false,
-        touchDrag:true,
-        mouseDrag:false,
-        smartSpeed:1000,
-        autoplayTimeout:setting.slideInterval
-    });
-	$('.slide-container').css('opacity', 1);
-    owlReady = true;
-    owlRunning = true;
-}
-
-function loadSlidesSafe() {
-    var validSlides = 0;
-    var total = setting.slideImageCount;
-    var minSlidesToStart = 3; // 🔥 minimal 3 biar bisa loop
-
-    for (let a = 1; a <= total; a++) {
-        let url = "www/public/Bilal/img/slide/" + a + ".JPG";
-
-        let img = new Image();
-
-        img.onload = function () {
-            addSlide(url);
-            validSlides++;
-
- 
-            // 🔥 START hanya jika sudah cukup
-            if (validSlides === minSlidesToStart && !owlReady) {
-                initOwl();
-				// 🔥 sembunyikan pesan saat ada image
-				$('.slide-message').removeClass('show');
-
-            }
-        };
-
-        img.onerror = function () {
-            // diam saja
-        };
-
-        img.src = url;
-    }
-
-    // fallback kalau cuma dapat 1 slide
-    setTimeout(function () {
-        finalizeSlides(validSlides);
-    }, 3000);
-}
-
-function addSlide(url) {
-    $('.slide-container').append(
-        '<div class="item" style="background-image:url(\'' + url + '\')"></div>'
-    );
-}
-
-function finalizeSlides(validSlides) {
-
-    if (validSlides === 0) {
-       $('.slide-message').addClass('show');
-        return;
-    }
-
-    if (validSlides === 1 && !owlReady) {
-        // masih bisa jalan walau 1 slide (tanpa loop)
-        initOwl();
-		// 🔥 sembunyikan pesan saat ada image
-		$('.slide-message').removeClass('show');
-        return;
-    }
-
-    if (!owlReady) {
-        initOwl();
-		// 🔥 sembunyikan pesan saat ada image
-		$('.slide-message').removeClass('show');
-    }
-}
-
 
 </script>
 </body>
