@@ -888,7 +888,7 @@
             var offsetIcon = setting.timezoneOffset > 0 ? '+' : (setting.timezoneOffset == 0) ? '' : '-';
             var now = new Date(); // today
 
-            watchdogLastTick = Date.now();
+            // watchdogLastTick = Date.now(); // Sengaja dihapus saja agar tidak mengganggu proses loading jadwal, karena jika loading jadwal lama (misal karena metode perhitungan yang kompleks), maka bisa menyebabkan watchdog restart yang tidak perlu
 
             prayTimes.setMethod(setting.methodCalc);
             prayTimes.tune(setting.tune);
