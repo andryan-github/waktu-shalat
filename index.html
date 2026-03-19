@@ -1091,12 +1091,11 @@
 
             mycountdown = setInterval(function () {
 
-                watchdogLastTick = Date.now(); // FIX BUG watchdog tick
-
+                
                 // =========================
                 // OPTIMASI MOMENT
                 // =========================
-                // var now = moment().unix();
+                // var now = moment().unix(); berat di Android 6.0 TV Box, ganti dengan Date.now() yang lebih ringan, karena kita hanya butuh detik saja
                 var now = Math.floor(Date.now() / 1000);
 
                 var distance = finalTime - now;
