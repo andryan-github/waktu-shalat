@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Jadwal Shalat</title>
     <link rel="stylesheet" href="www/public/Bilal/css/normalize.min.css" />
     <link rel="stylesheet" href="www/public/Bilal/js/owlcarousel/assets/owl.carousel.min.css" />
@@ -637,7 +637,7 @@
             </div>
         </div>
     </div>
-    </div>
+
     <div class="layer"></div>
 
     <!--fix problem : google chrome update will not autoplay audio/video-->
@@ -735,100 +735,101 @@
         // FIX STABILITY TV BOX MODE
         // tidak reload halaman karena bisa gagal jika internet mati
         // hanya refresh jadwal dan countdown
-        function startHeartbeat() {
+        // =============================
+        // HEARTBEAT 1 MENIT TASK (Midnight + Daily Refresh Safe)
+        // =============================
+        var lastMinuteCheck = Date.now();
+        var todayDate = moment().format("YYYY-MM-DD");
+        var lastMidnightTrigger = null; // flag tambahan untuk midnight
 
-            if (heartbeatInterval) {
-                clearInterval(heartbeatInterval);
+        function heartbeatOneMinuteTask() {
+
+            var now = Date.now();
+
+            // hanya eksekusi jika sudah > 60 detik sejak terakhir
+            if (now - lastMinuteCheck < 60000) return;
+
+            lastMinuteCheck = now;
+
+            var nowMoment = moment();
+            var currentDateStr = nowMoment.format("YYYY-MM-DD");
+
+            var shouldRefresh = false;
+
+            // =========================
+            // 1. Daily refresh: cek pergantian hari
+            // =========================
+            if (currentDateStr !== todayDate && systemState === "countdown") {
+                todayDate = currentDateStr;
+                shouldRefresh = true;
+                console.log("Daily refresh triggered:", currentDateStr);
             }
+
+            // =========================
+            // 2. Midnight refresh: cek jam 00:00
+            // - Gunakan lastMidnightTrigger agar tidak ganda
+            // =========================
+            if (
+                nowMoment.hour() === 0 &&
+                nowMoment.minute() === 0 &&
+                lastMidnightTrigger !== currentDateStr
+            ) {
+                shouldRefresh = true;
+                lastMidnightTrigger = currentDateStr;
+                console.log("Midnight refresh triggered:", currentDateStr);
+            }
+
+            // =========================
+            // 3. Jalankan startApp sekali jika ada trigger aktif
+            // =========================
+            if (shouldRefresh) {
+                startApp(true); // force restart
+            }
+
+            // =========================
+            // 4. Cek status jaringan
+            // =========================
+            updateNetworkStatus();
+
+            // =========================
+            // Opsional: log ringan untuk debugging
+            // =========================
+            if (Math.random() < 0.1) {
+                console.log("Heartbeat 1-min tick:", nowMoment.format("HH:mm:ss"));
+            }
+        }
+
+        // =============================
+        // INTEGRASI DENGAN HEARTBEAT INTERVAL UTAMA
+        // =============================
+        function startHeartbeat() {
+            if (heartbeatInterval) clearInterval(heartbeatInterval);
 
             heartbeatInterval = setInterval(function () {
 
-                heartbeatTick++;
-                var now = Date.now();
-
-                // =========================
-                // 1. BASIC TICK (SETIAP DETIK)
-                // =========================
+                // 1. BASIC TICK SETIAP DETIK
                 if (systemState === "countdown") {
-                    watchdogLastTick = now;
+                    watchdogLastTick = Date.now();
                 }
-
-                // update jam (tanpa tunggu countdown)
                 updateClockDisplay();
 
-                // =========================
-                // 2. 1 MENIT TASK
-                // =========================
-                if (now - lastMinuteCheck > 60000) {
-                    lastMinuteCheck = now;
+                // 2. HEARTBEAT 1 MENIT TASK
+                heartbeatOneMinuteTask();
 
-                    // random log (hemat CPU)
-                    if (Math.random() < 0.1) {
-                        console.log("Bilal heartbeat", Date.now());
+                // 3. WATCHDOG 5 MENIT
+                if (Date.now() - lastWatchdogCheck > 300000) {
+                    lastWatchdogCheck = Date.now();
+                    if (Date.now() - watchdogLastTick > 150000 && systemState === "countdown") {
+                        console.log("Watchdog restart (heartbeat)");
+                        try { startApp(true); } catch (e) { console.log("Watchdog error:", e); }
                     }
-
-                    // cek pergantian hari
-                    currentDate = moment().format("YYYY-MM-DD");
-
-                    if (currentDate !== todayDate && systemState == "countdown") {
-                        todayDate = currentDate;
-                        console.log("Daily refresh triggered");
-                        startApp(true);
-                    }
-
-                    var nowMoment = moment(); // gunakan moment untuk cek waktu dengan lebih mudah
-                    if (nowMoment.hour() === 0 && nowMoment.minute() === 0) {
-                        console.log("Midnight refresh triggered");
-                        startApp(true);
-                    }
-
-                    // cek network
-                    updateNetworkStatus();
                 }
 
-
-                // =========================
-                // 3. 5 MENIT WATCHDOG
-                // =========================
-                if (now - lastWatchdogCheck > 300000) {
-
-                    lastWatchdogCheck = now;
-
-                    var diff = now - watchdogLastTick;
-
-                    if (diff > 150000) {
-
-                        if (systemState === "countdown") {
-
-                            console.log("Watchdog restart (heartbeat)");
-
-                            try {
-                                startApp(true);
-                            } catch (e) {
-                                console.log("Watchdog error:", e);
-                            }
-
-                        } else {
-                            console.log("Watchdog skipped (ritual)");
-                        }
-
-                    }
-
-                }
-
-                // =========================
-                // 4. 6 JAM STABILITY REFRESH
-                // =========================
-
-
-                if (now - lastStabilityCheck > 21600000) {
-                    lastStabilityCheck = now;
-
+                // 4. STABILITY REFRESH 6 JAM
+                if (Date.now() - lastStabilityCheck > 21600000) {
+                    lastStabilityCheck = Date.now();
                     console.log("Stability refresh (heartbeat)");
-
-                    if (systemState == "countdown") {
-                        startApp(true);
-                    }
+                    if (systemState == "countdown") startApp(true);
                 }
 
             }, 1000);
@@ -1430,8 +1431,6 @@
             var testUrls = [
                 "https://1.1.1.1/cdn-cgi/trace",          // paling kuat (IP langsung)
                 "https://cloudflare.com/cdn-cgi/trace",   // CDN global
-                "https://httpstat.us/204",                // HTTP status test
-                "https://example.com/"                    // fallback universal
             ];
 
             if (location.origin !== "null") {
