@@ -729,6 +729,7 @@
         var lastMinuteCheck = Date.now();
         var lastWatchdogCheck = Date.now();
         var appStarted = false;
+        var HIJRI_OFFSET = -1;
 
 
         // FIX STABILITY TV BOX MODE
@@ -772,7 +773,13 @@
                     if (currentDate !== todayDate && systemState == "countdown") {
                         todayDate = currentDate;
                         console.log("Daily refresh triggered");
-                        startApp();
+                        startApp(true);
+                    }
+
+                    var nowMoment = moment(); // gunakan moment untuk cek waktu dengan lebih mudah
+                    if (nowMoment.hour() === 0 && nowMoment.minute() === 0) {
+                        console.log("Midnight refresh triggered");
+                        startApp(true);
                     }
 
                     // cek network
@@ -796,7 +803,7 @@
                             console.log("Watchdog restart (heartbeat)");
 
                             try {
-                                startApp();
+                                startApp(true);
                             } catch (e) {
                                 console.log("Watchdog error:", e);
                             }
@@ -820,7 +827,7 @@
                     console.log("Stability refresh (heartbeat)");
 
                     if (systemState == "countdown") {
-                        startApp();
+                        startApp(true);
                     }
                 }
 
@@ -861,11 +868,19 @@
         }
 
         // with FIX BUG geolocation async
-        function startApp() {
+        function startApp(force = false) {
 
-            if (appStarted) {
+            if (appStarted && !force) {
                 console.log("startApp skipped (already started)");
                 return;
+            }
+
+
+            if (force) {
+                console.log("Force restart app");
+
+                systemState = "countdown";
+                systemPrayer = "";
             }
 
             appStarted = true;
@@ -884,6 +899,20 @@
 
             masterTime = [times.imsak, times.fajr, times.sunrise, times.dhuhr, times.asr, times.maghrib, times.isha];
             masterName = setting.aliasName;
+
+            masterSchedule = masterTime.map(function (t, i) {
+                var splt = t.split(':');
+
+                return {
+                    name: masterName[i],
+                    timeStr: t,
+                    timestamp: moment().hour(splt[0]).minute(splt[1]).second(0).unix()
+                };
+            });
+
+            masterSchedule.sort(function (a, b) {
+                return a.timestamp - b.timestamp;
+            });
 
             // FIX BUG reference array (harus copy bukan reference)
             tempShalat = masterTime.slice();
@@ -954,17 +983,17 @@
                     // FIX BUG timezone
                     setting.timezoneOffset = Math.round(moment().utcOffset() / 60);
 
-                    startApp();
+                    startApp(true);
 
                 },
                     function error() {
-                        startApp(); // fallback jika GPS gagal
+                        startApp(true); // fallback jika GPS gagal
                     },
                     { maximumAge: 10000, timeout: 3000, enableHighAccuracy: true });
 
             } else {
 
-                startApp();
+                startApp(true); // langsung mulai tanpa geolocation
 
             }
 
@@ -978,10 +1007,11 @@
             window.addEventListener('online', updateNetworkStatus);
             window.addEventListener('offline', updateNetworkStatus);
 
-           
+
             //running text
             $.ajax({
                 url: setting.runningTextFile,
+                timeout: 3000,
                 success: function (d) {
                     $('.running-text').text(d);
                 },
@@ -989,11 +1019,15 @@
                     $('.running-text').text("Selamat datang di " + setting.nama);
                 },
                 complete: function () {
+                    if ($('.running-text').data('marquee')) {
+                        $('.running-text').marquee('destroy');
+                    } // jika ada instance marquee sebelumnya, hancurkan dulu agar tidak duplikat
                     $('.running-text').marquee({
                         duration: setting.runningTextSpeed,
                         gap: 50
                     });
                 }
+
             });
 
             //CHECK Visibility
@@ -1013,6 +1047,9 @@
             }
 
             setTimeout(function () {
+                if ($('.owl-carousel').data('owl.carousel')) {
+                    $('.owl-carousel').owlCarousel('destroy');
+                } // jika ada instance owl sebelumnya, hancurkan dulu agar tidak duplikat
                 $('.owl-carousel').owlCarousel({
                     loop: true,
                     items: 1,
@@ -1060,7 +1097,7 @@
             $('.hijriah').text(
                 nowMoment.format('ddd, DD/MM/YYYY') +
                 ' - ' +
-                nowMoment.format('iD iMMMM iYYYY [H]')
+                nowMoment.clone().add(HIJRI_OFFSET, 'iDate').format('iD iMMMM iYYYY [H]')
             );
 
         }
@@ -1298,9 +1335,7 @@
 
             // ========================================
             // PROTEKSI RITUAL PHASE
-            // nextSchedule hanya boleh berjalan saat mode countdown
             // ========================================
-
             console.log("nextSchedule called | state:", systemState);
 
             if (systemState !== "countdown" && systemState !== "iqomah") {
@@ -1322,32 +1357,50 @@
                 hideOverlay();
             }
 
-            // var now = moment().unix(); // lebih aman diletakkan di luar loop
             var now = Math.floor(Date.now() / 1000);
-            for (var a = 0; a < tempShalat.length; a++) { // FIX BUG global variable
 
-                var splt = tempShalat[a].split(':');
-                var next = moment().hour(splt[0]).minute(splt[1]).second(0).unix();
+            // ========================================
+            // LOOP MASTER SCHEDULE (SUDAH DISORT)
+            // ========================================
+            for (var i = 0; i < masterSchedule.length; i++) {
 
-                if (now < next) {
+                if (now < masterSchedule[i].timestamp) {
 
-                    countdownShalat(next, masterName[a], 'MENJELANG ' + masterName[a]);
+                    countdownShalat(
+                        masterSchedule[i].timestamp,
+                        masterSchedule[i].name,
+                        'MENJELANG ' + masterSchedule[i].name,
+                        masterSchedule[i].name
+                    );
 
                     found = true;
                     return false;
-
                 }
             }
 
-            var splt = tempShalat[0].split(':');
-
-            var next = moment().add(1, 'day').hour(splt[0]).minute(splt[1]).second(0).unix();
-
+            // ========================================
+            // JIKA SUDAH LEWAT SEMUA → BESOK EVENT PERTAMA
+            // ========================================
             if (!found) {
-                countdownShalat(next, masterName[0], 'MENJELANG ' + masterName[0]);
+
+                var first = masterSchedule[0];
+                var splt = first.timeStr.split(':');
+
+                var next = moment()
+                    .add(1, 'day')
+                    .hour(splt[0])
+                    .minute(splt[1])
+                    .second(0)
+                    .unix();
+
+                countdownShalat(
+                    next,
+                    first.name,
+                    'MENJELANG ' + first.name,
+                    first.name
+                );
             }
         }
-
         // =========================================
         // NETWORK STATUS DETECTOR
         // =========================================
@@ -1373,38 +1426,62 @@
         // CHECK koneksi INTERNET real time, bukan sekedar adanya WIFI 
         function checkInternet() {
 
-            $.ajax({
-                url: setting.runningTextFile,
-                method: 'HEAD',
-                timeout: 3000,
-                success: function () {
+            var testUrls = [
+                "https://clients3.google.com/generate_204",
+                "https://www.gstatic.com/generate_204"
+            ];
 
-                    internetFailCount = 0; // reset jika berhasil
+            if (location.origin !== "null") {
+                testUrls.push(location.origin); // tambahkan origin sendiri untuk cek koneksi ke server lokal (jika ada)
+            }
 
-                    $('.net-status, .net-status-header')
-                        .text("ONLINE")
-                        .removeClass('net-offline')
-                        .addClass('net-online');
+            var success = false;
+            var checked = 0;
 
-                },
-                error: function () {
+            testUrls.forEach(function (url) {
+                $.ajax({
+                    url: url,
+                    method: 'GET',
+                    cache: false,
+                    timeout: 3000,
 
-                    internetFailCount++;
+                    success: function () {
 
-                    console.log("Internet check failed | count:", internetFailCount);
+                        if (!success) {
+                            success = true;
 
-                    if (internetFailCount >= internetFailTolerance) {
+                            internetFailCount = 0; // reset jika berhasil
 
-                        $('.net-status, .net-status-header')
-                            .text("OFFLINE")
-                            .removeClass('net-online')
-                            .addClass('net-offline');
+                            $('.net-status, .net-status-header')
+                                .text("ONLINE")
+                                .removeClass('net-offline')
+                                .addClass('net-online');
+                        }
+                    },
+
+                    error: function () {
+
+                        checked++;
+
+                        if (checked === testUrls.length && !success) {
+
+                            internetFailCount++;
+
+                            console.log("Internet check failed | count:", internetFailCount);
+
+                            if (internetFailCount >= internetFailTolerance) {
+
+                                $('.net-status, .net-status-header')
+                                    .text("OFFLINE")
+                                    .removeClass('net-online')
+                                    .addClass('net-offline');
+                            }
+                        }
                     }
-                }
+                });
+
             });
-
         }
-
 
         // Gunakan Overlay
         function showOverlay(msg1, msg2, msg3) {
