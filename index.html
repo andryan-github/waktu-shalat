@@ -342,7 +342,7 @@
             min-height: calc(100vh - 186px);
         }
 
-       
+
         .wallpaper {
             position: relative;
             min-height: calc(100vh - 186px);
@@ -1060,8 +1060,10 @@
             }
 
             setTimeout(function () {
-                if ($('.owl-carousel').data('owl.carousel')) {
-                    $('.owl-carousel').owlCarousel('destroy');
+                var $owl = $('.owl-carousel');
+
+                if ($owl.data('owl.carousel')) {
+                    $owl.owlCarousel('destroy');
                 } // jika ada instance owl sebelumnya, hancurkan dulu agar tidak duplikat
                 $('.owl-carousel').owlCarousel({
                     loop: true,
@@ -1072,7 +1074,7 @@
                     autoplayHoverPause: false,
                     touchDrag: true,
                     mouseDrag: false,
-                    smartSpeed: 1000, // jangan terlalu lama transisinya, bisa CPU spike
+                    smartSpeed: 500, // jangan terlalu lama transisinya, bisa CPU spike
                     autoplayTimeout: setting.slideInterval,
                     slideTransition: 'ease-in-out' // bisa dihapus jika dianggap tidak perlu
                 });
