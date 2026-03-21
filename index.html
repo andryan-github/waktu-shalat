@@ -1426,9 +1426,12 @@
         // CHECK koneksi INTERNET real time, bukan sekedar adanya WIFI 
         function checkInternet() {
 
+            var latencyStart = Date.now();
             var testUrls = [
-                "https://clients3.google.com/generate_204",
-                "https://www.gstatic.com/generate_204"
+                "https://1.1.1.1/cdn-cgi/trace",          // paling kuat (IP langsung)
+                "https://cloudflare.com/cdn-cgi/trace",   // CDN global
+                "https://httpstat.us/204",                // HTTP status test
+                "https://example.com/"                    // fallback universal
             ];
 
             if (location.origin !== "null") {
@@ -1437,8 +1440,12 @@
 
             var success = false;
             var checked = 0;
+            var done = false;
 
             testUrls.forEach(function (url) {
+
+                if (done) return;
+
                 $.ajax({
                     url: url,
                     method: 'GET',
@@ -1447,34 +1454,51 @@
 
                     success: function () {
 
-                        if (!success) {
-                            success = true;
+                        if (done) return;
+                        done = true;
 
-                            internetFailCount = 0; // reset jika berhasil
+                        internetFailCount = 0;
+                        var latency = Date.now() - latencyStart;
 
-                            $('.net-status, .net-status-header')
-                                .text("ONLINE")
-                                .removeClass('net-offline')
-                                .addClass('net-online');
+                        if (latency < 200) {
+                            statusText = "ONLINE";
+                        } else if (latency < 1000) {
+                            statusText = "SLOW";
+                        } else {
+                            statusText = "VERY SLOW";
                         }
+
+                        $('.net-status, .net-status-header')
+                            .text(statusText)
+                            .removeClass('net-offline')
+                            .addClass('net-online');
                     },
 
                     error: function () {
 
+                        if (done) return;
+
                         checked++;
 
-                        if (checked === testUrls.length && !success) {
+                        if (checked === testUrls.length) {
 
                             internetFailCount++;
 
                             console.log("Internet check failed | count:", internetFailCount);
 
-                            if (internetFailCount >= internetFailTolerance) {
+                            if (internetFailCount < internetFailTolerance) {
+
+                                $('.net-status, .net-status-header')
+                                    .text("CHECKING...")
+                                    .removeClass('net-online net-offline');
+
+                            } else {
 
                                 $('.net-status, .net-status-header')
                                     .text("OFFLINE")
                                     .removeClass('net-online')
                                     .addClass('net-offline');
+
                             }
                         }
                     }
