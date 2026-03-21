@@ -1452,9 +1452,8 @@
                 testUrls.push(location.origin); // tambahkan origin sendiri untuk cek koneksi ke server lokal (jika ada)
             }
 
-            var success = false;
             var checked = 0;
-            var done = false;
+            var done = false; // success flag untuk mencegah multiple callback
 
             testUrls.forEach(function (url) {
 
@@ -1464,7 +1463,7 @@
                     url: url,
                     method: 'GET',
                     cache: false,
-                    timeout: 3000,
+                    timeout: 4500, // timeout 4.5 detik untuk respons, jika lebih dari ini dianggap gagal
 
                     success: function () {
 
