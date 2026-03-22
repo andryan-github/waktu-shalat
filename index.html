@@ -989,6 +989,7 @@
             if (bilalLoggerStopper) clearTimeout(bilalLoggerStopper);
 
             console.log("Bilal App started at", moment().format("YYYY-MM-DD HH:mm:ss"));
+            console.log("Latin:", latin.css('opacity'), "Arab:", arab.css('opacity'));
 
             bilalLogger = setInterval(function () {
 
