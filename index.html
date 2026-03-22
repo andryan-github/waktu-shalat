@@ -606,10 +606,10 @@
 
         .prayer-title span {
             position: relative;   /* 🔥 tumpuk */
-    left: 0;
-    top: 0;
+    left: 50%; /* horizontal tengah */
+    transform: translateX(-50%); /* horizontal tengah */        
     width: 100%;
-    text-align: center;
+    text-align: center !important;
             top: 50%; /* vertikal tengah */
             transform: translateY(-50%); /* vertikal tengah */
             transition: opacity 0.6s ease;
@@ -622,8 +622,7 @@
             letter-spacing: 1px;
              width: 100%;
     text-align: center !important;
-             color: #ffcc80;
-             /* coklat keemasan */
+             
              font-weight: bold;
 
              /* text-shadow:0 2px 4px rgba(0,0,0,0.7); */
