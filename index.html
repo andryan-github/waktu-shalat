@@ -288,6 +288,7 @@
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
         }
 
+
         .wallpaper::after {
             content: "";
             position: absolute;
@@ -604,6 +605,7 @@
             position: absolute;
             left: 0;
             right: 0;
+            top: 0;
             transition: opacity 0.6s ease;
         }
 
@@ -859,7 +861,9 @@
                     var latin = $(this).find('.latin');
                     var arab = $(this).find('.arab');
 
-                    if (latin.css('opacity') == 1) {
+                    var latinVisible = parseFloat(latin.css('opacity')) > 0.5;
+
+                    if (latinVisible) {
                         latin.css('opacity', 0);
                         arab.css('opacity', 1);
                     } else {
@@ -869,7 +873,8 @@
 
                 });
 
-            }, 4000); // 4 detik
+            }, 4000);
+
         }
 
 
@@ -1146,6 +1151,10 @@
             setTimeout(updateNetworkStatus, 600);
 
             // Animasi pergantian nama sholat Latin-Arab setiap 4 detik
+            $('.prayer-title').each(function () {
+                $(this).find('.latin').css('opacity', 1);
+                $(this).find('.arab').css('opacity', 0);
+            });
             animatePrayerTitles();
 
             // cek jika status berubah
