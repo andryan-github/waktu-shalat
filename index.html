@@ -989,7 +989,7 @@
             if (bilalLoggerStopper) clearTimeout(bilalLoggerStopper);
 
             console.log("Bilal App started at", moment().format("YYYY-MM-DD HH:mm:ss"));
-            console.log("Latin:", latin.css('opacity'), "Arab:", arab.css('opacity'));
+            
 
             bilalLogger = setInterval(function () {
 
@@ -1155,6 +1155,7 @@
             $('.prayer-title').each(function () {
                 $(this).find('.latin').css('opacity', 1);
                 $(this).find('.arab').css('opacity', 0);
+                console.log("Latin:", latin.css('opacity'), "Arab:", arab.css('opacity'));
             });
             animatePrayerTitles();
 
