@@ -623,8 +623,9 @@
         .prayer-title .arab {
             opacity: 0;
             font-family: 'Scheherazade', serif;
-            font-size: 18.2px;
-            letter-spacing: 2px;
+            font-size: 18px;
+            letter-spacing: 0px;
+            line-height: 1.2;
             transform: translateY(-150%);
             font-weight: bold;
             margin-top: 2px;
@@ -931,7 +932,7 @@
 
                 });
 
-            }, 10000);
+            }, 11000);
 
         }
 
@@ -1209,7 +1210,7 @@
             // pastikan update lagi setelah DOM stabil
             setTimeout(updateNetworkStatus, 600);
 
-            // Animasi pergantian nama sholat Latin-Arab setiap 4 detik
+            // Animasi pergantian nama sholat Latin-Arab setiap 11 detik
             $('.prayer-title').each(function () {
                 $(this).find('.latin').css('opacity', 1);
                 $(this).find('.arab').css('opacity', 0);
@@ -1365,8 +1366,8 @@
             var highlightName = shalatName ? shalatName : name;
             $('.' + highlightName).closest('.myprayer').addClass('highlight');
 
-            //$('.desc').text(desc);
-            $('.desc').text(formatTextGlobal(desc));
+            $('.desc').text(getDisplayName(desc));
+            //$('.desc').text(formatTextGlobal(desc));
 
             finalTime = time;
 
