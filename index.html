@@ -600,44 +600,38 @@
         }
 
         .prayer-title {
-            position: relative;
-            overflow: hidden;
-            height: 24px;
+    position: relative;
+    height: 24px;
+    overflow: hidden;
 
-            /* sesuaikan dengan ukuran font dan padding untuk memastikan teks tidak terpotong */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
-        }
+.prayer-title span {
+    position: absolute;
+    width: 100%;
+    text-align: center;
 
-        .prayer-title span {
-            position: relative;
-            display: block;
-            max-height: 20px;
-            text-align: center !important;
-            transform: translateY(-50%);
-            top: 50%;
-            /* posisikan di tengah vertikal */
-            font-weight: bold;
-            transition: opacity 0.6s ease;
-        }
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 
-        .prayer-title .arab {
-            opacity: 0;
-            font-family: 'Scheherazade', serif;
-            font-size: 17px;
-            letter-spacing: 0px;
-            line-height: 1.2;
-            transform: translateY(-150%);
-            font-weight: bold;
-            margin-top: 1px;
-        }
+    transition: opacity 0.6s ease;
+}
 
-        .prayer-title .latin {
-            opacity: 1;
-            font-size: 20px;
-            letter-spacing: 0.5px;
-            line-height: 1.2;
-            font-weight: bold;
-        }
+/* Latin default tampil */
+.prayer-title .latin {
+    opacity: 1;
+    font-size: 20px;
+}
+
+/* Arab hidden */
+.prayer-title .arab {
+    opacity: 0;
+    font-size: 17px;
+}
     </style>
 
 </head>
