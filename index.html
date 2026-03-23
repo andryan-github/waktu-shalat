@@ -898,7 +898,19 @@
 
                 var regex = new RegExp('\\b' + key + '\\b', 'g');
 
-                text = text.replace(regex, formatShalatName(key));
+                text = text.replace(regex, function (match, offset, fullText) {
+
+                    // ambil karakter sebelum kata
+                    var prevChar = fullText[offset - 1];
+
+                    // kalau sebelumnya sudah ' atau ʿ → skip
+                    if (prevChar === "'" || prevChar === "ʿ") {
+                        return match;
+                    }
+
+                    return formatShalatName(key);
+                });
+
             });
 
             return text;
