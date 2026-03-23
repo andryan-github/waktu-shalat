@@ -603,9 +603,9 @@
             position: relative;
             overflow: hidden;
             height: 24px;
-            
-             /* sesuaikan dengan ukuran font dan padding untuk memastikan teks tidak terpotong */
-            
+
+            /* sesuaikan dengan ukuran font dan padding untuk memastikan teks tidak terpotong */
+
         }
 
         .prayer-title span {
@@ -614,9 +614,9 @@
             max-height: 20px;
             text-align: center !important;
             transform: translateY(-50%);
-            top:50%;
-             /* posisikan di tengah vertikal */
-             font-weight: bold; 
+            top: 50%;
+            /* posisikan di tengah vertikal */
+            font-weight: bold;
             transition: opacity 0.6s ease;
         }
 
@@ -632,7 +632,7 @@
 
         .prayer-title .latin {
             opacity: 1;
-            
+
         }
     </style>
 
@@ -811,21 +811,6 @@
             aliasName: ['IMSAK', 'SUBUH', 'SYURUQ', 'ZHUHUR', 'ASHAR', 'MAGHRIB', 'ISYA']
         }
 
-        var DISPLAY_MODE = 'BILINGUAL';
-        // pilihan:
-        // 'ID'         → SHUBUH
-        // 'AR'         → Ṣubḥ
-        // 'BILINGUAL'  → SHUBUH (Ṣubḥ)
-
-        var SHALAT_NAME_MAP = {
-            'SUBUH': { id: 'SHUBUH', ar: 'Ṣubḥ' },
-            'ASHAR': { id: "'ASHAR", ar: 'ʿAṣr' },
-            'ISYA': { id: "'ISYA", ar: 'ʿIsyāʾ' },
-            'ZHUHUR': { id: 'ZHUHUR', ar: 'Ẓuhr' },
-            'MAGHRIB': { id: 'MAGHRIB', ar: 'Maghrib' },
-            'IMSAK': { id: 'IMSAK', ar: 'Imsāk' },
-            'SYURUQ': { id: 'SYURUQ', ar: 'Syurūq' }
-        };
 
         // FIX BUG global variable
         var mycountdown;
@@ -875,6 +860,23 @@
             MAGHRIB: "المغرب",
             ISYA: "العشاء"
         };
+
+        var DISPLAY_MODE = 'BILINGUAL';
+        // pilihan:
+        // 'ID'         → SHUBUH
+        // 'AR'         → Ṣubḥ
+        // 'BILINGUAL'  → SHUBUH (Ṣubḥ)
+
+        var SHALAT_NAME_MAP = {
+            'IMSAK': { id: 'IMSAK', ar: 'الإمساك' },
+            'SUBUH': { id: 'SHUBUH', ar: 'الصبح' },
+            'SYURUQ': { id: 'SYURUQ', ar: 'الشروق' },
+            'ZHUHUR': { id: 'ZHUHUR', ar: 'الظهر' },
+            'ASHAR': { id: "'ASHAR", ar: 'العصر' },
+            'MAGHRIB': { id: 'MAGHRIB', ar: 'المغرب' },
+            'ISYA': { id: "'ISYA", ar: 'العشاء' }
+        };
+
 
         function formatShalatName(name) {
 
